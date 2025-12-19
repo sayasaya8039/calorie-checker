@@ -1,4 +1,6 @@
-// カロリーSlismスクレイピング用Cloudflare Worker
+// カロリーSlismスクレイピング用Cloudflare Worker (Hono)
+import { Hono } from 'hono';
+import { cors } from 'hono/cors';
 
 interface CalorieResult {
   name: string;
@@ -8,64 +10,36 @@ interface CalorieResult {
   url: string;
 }
 
-interface Env {}
+const app = new Hono();
 
-export default {
-  async fetch(request: Request, env: Env): Promise<Response> {
-    const url = new URL(request.url);
+// CORS設定
+app.use('*', cors());
 
-    // CORS対応
-    const corsHeaders = {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
-    };
+// ルートエンドポイント
+app.get('/', (c) => {
+  return c.text('Calorie API - Use /api/search?q=食品名');
+});
 
-    if (request.method === 'OPTIONS') {
-      return new Response(null, { headers: corsHeaders });
-    }
+// 検索エンドポイント
+app.get('/api/search', async (c) => {
+  const query = c.req.query('q');
 
-    // /api/search?q=カレー のようなエンドポイント
-    if (url.pathname === '/api/search') {
-      const query = url.searchParams.get('q');
-
-      if (!query) {
-        return new Response(
-          JSON.stringify({ error: '検索クエリが必要です', results: [] }),
-          {
-            status: 400,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-          }
-        );
-      }
-
-      try {
-        const results = await searchCalorieSlism(query);
-        return new Response(
-          JSON.stringify({ query, results }),
-          {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-          }
-        );
-      } catch (error) {
-        return new Response(
-          JSON.stringify({ error: 'スクレイピングに失敗しました', results: [] }),
-          {
-            status: 500,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-          }
-        );
-      }
-    }
-
-    return new Response('Calorie API - Use /api/search?q=食品名', {
-      headers: corsHeaders
-    });
+  if (!query) {
+    return c.json({ error: '検索クエリが必要です', results: [] }, 400);
   }
-};
 
+  try {
+    const results = await searchCalorieSlism(query);
+    return c.json({ query, results });
+  } catch {
+    return c.json({ error: 'スクレイピングに失敗しました', results: [] }, 500);
+  }
+});
+
+export default app;
+
+// カロリーSlism検索
 async function searchCalorieSlism(query: string): Promise<CalorieResult[]> {
-  // カロリーSlismの検索URL（フォーム送信先）
   const searchUrl = `https://calorie.slism.jp/search/?s=${encodeURIComponent(query)}`;
 
   const response = await fetch(searchUrl, {
@@ -77,17 +51,15 @@ async function searchCalorieSlism(query: string): Promise<CalorieResult[]> {
   });
 
   if (!response.ok) {
-    // 検索URLが404の場合、別のアプローチを試す
-    return await searchViaGoogleSite(query);
+    return await searchViaFallback(query);
   }
 
   const html = await response.text();
   return parseSearchResults(html);
 }
 
-async function searchViaGoogleSite(query: string): Promise<CalorieResult[]> {
-  // 代替: 直接個別ページをいくつか試す
-  // よくある料理のIDマッピング
+// フォールバック検索
+async function searchViaFallback(query: string): Promise<CalorieResult[]> {
   const commonFoods: Record<string, { id: string; name: string }[]> = {
     'カレー': [
       { id: '200000', name: 'カレーライス' },
@@ -117,7 +89,6 @@ async function searchViaGoogleSite(query: string): Promise<CalorieResult[]> {
 
   const results: CalorieResult[] = [];
 
-  // クエリにマッチするキーを探す
   for (const [key, foods] of Object.entries(commonFoods)) {
     if (query.includes(key) || key.includes(query)) {
       for (const food of foods) {
@@ -129,10 +100,10 @@ async function searchViaGoogleSite(query: string): Promise<CalorieResult[]> {
     }
   }
 
-  // マッチしなかった場合は空を返す
   return results;
 }
 
+// 個別ページ取得
 async function fetchFoodPage(id: string): Promise<CalorieResult | null> {
   try {
     const url = `https://calorie.slism.jp/${id}/`;
@@ -152,11 +123,9 @@ async function fetchFoodPage(id: string): Promise<CalorieResult | null> {
   }
 }
 
+// 検索結果パース
 function parseSearchResults(html: string): CalorieResult[] {
   const results: CalorieResult[] = [];
-
-  // 検索結果ページから食品リンクとカロリーを抽出
-  // パターン: <a href="/200000/">カレーライス</a> ... 798kcal
   const linkPattern = /<a[^>]*href="\/(\d+)\/"[^>]*>([^<]+)<\/a>/g;
   const caloriePattern = /(\d+(?:\.\d+)?)\s*kcal/gi;
 
@@ -164,8 +133,6 @@ function parseSearchResults(html: string): CalorieResult[] {
   while ((match = linkPattern.exec(html)) !== null) {
     const id = match[1];
     const name = match[2].trim();
-
-    // 同じ行付近のカロリーを探す
     const nearbyText = html.substring(match.index, match.index + 500);
     const calMatch = caloriePattern.exec(nearbyText);
 
@@ -178,24 +145,21 @@ function parseSearchResults(html: string): CalorieResult[] {
         url: `https://calorie.slism.jp/${id}/`
       });
     }
-
     caloriePattern.lastIndex = 0;
   }
 
-  return results.slice(0, 10); // 最大10件
+  return results.slice(0, 10);
 }
 
+// 個別ページパース
 function parseFoodPage(html: string, url: string): CalorieResult | null {
-  // JSON-LDからデータを抽出
   const jsonLdMatch = html.match(/<script[^>]*type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/i);
 
   if (jsonLdMatch) {
     try {
       const jsonLd = JSON.parse(jsonLdMatch[1]);
       if (jsonLd.name && jsonLd.nutrition?.calories) {
-        const caloriesStr = jsonLd.nutrition.calories;
-        const caloriesNum = parseFloat(caloriesStr.replace(/[^\d.]/g, ''));
-
+        const caloriesNum = parseFloat(jsonLd.nutrition.calories.replace(/[^\d.]/g, ''));
         return {
           name: jsonLd.name,
           calories: caloriesNum,
@@ -209,7 +173,6 @@ function parseFoodPage(html: string, url: string): CalorieResult | null {
     }
   }
 
-  // フォールバック: H1とstrongからパース
   const h1Match = html.match(/<h1[^>]*>([^<]+)</i);
   const calMatch = html.match(/<strong>(\d+(?:\.\d+)?)\s*kcal<\/strong>/i);
 

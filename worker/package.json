@@ -1,0 +1,13 @@
+{
+  "name": "calorie-api",
+  "version": "1.2.0",
+  "description": "カロリー検索API (Cloudflare Workers + Hono)",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
+  },
+  "dependencies": {
+    "hono": "^4.11.1"
+  }
+}
