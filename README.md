@@ -1,6 +1,13 @@
 # カロリーチェッカー
 
-品名を入力すると、その食品の平均カロリーを表示するWebアプリです。
+品名を入力すると、その食品の平均カロリーを表示するWebアプリ・Chrome拡張機能です。
+
+## ダウンロード
+
+| 種類 | リンク |
+|------|--------|
+| **Webアプリ** | https://calorie-checker.pages.dev/ |
+| **Chrome拡張機能** | [GitHub Releases](https://github.com/sayasaya8039/calorie-checker/releases/latest) |
 
 ## 機能
 
@@ -17,7 +24,21 @@
 3. 内蔵データにない場合は、自動的にカロリーSlismから検索します
 4. 右上のボタンでテーマを切り替えられます
 
-## インストール・起動方法
+## Chrome拡張機能のインストール
+
+### CRXファイルから（推奨）
+1. [Releases](https://github.com/sayasaya8039/calorie-checker/releases/latest)から `.crx` ファイルをダウンロード
+2. Chromeで `chrome://extensions/` を開く
+3. 「デベロッパーモード」をON
+4. `.crx` ファイルをページにドラッグ＆ドロップ
+
+### ソースから
+1. このリポジトリをクローン
+2. `npm install && npm run build:extension`
+3. Chromeで `chrome://extensions/` を開く
+4. 「パッケージ化されていない拡張機能を読み込む」から `extension` フォルダを選択
+
+## 開発
 
 ```bash
 # 依存関係をインストール
@@ -26,11 +47,15 @@ npm install
 # 開発サーバーを起動
 npm run dev
 
-# ビルド
+# Webアプリ用ビルド
 npm run build
 
-# Cloudflare Pagesにデプロイ
-npx wrangler pages deploy calorie-checker
+# Chrome拡張機能用ビルド
+npm run build:extension
+
+# CRX/ZIPファイル作成
+python create_icons.py
+python create_zip.py
 ```
 
 ## 技術スタック
