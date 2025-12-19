@@ -6,6 +6,8 @@ calorie-checker/
 extension/assets/
 extension/index.html
 *.zip
+*.crx
+*.pem
 
 # 環境変数
 .env
