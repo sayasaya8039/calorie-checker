@@ -1,0 +1,8 @@
+# カロリーチェッカー Python依存関係
+# pip install -r requirements.txt
+
+# アイコン作成用
+Pillow>=10.0.0
+
+# Windowsアプリ作成用（オプション）
+pyinstaller>=6.0.0
