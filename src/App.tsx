@@ -3,7 +3,7 @@ import { searchFood, type FoodItem } from './data/calorieData';
 import { SearchResult } from './components/SearchResult';
 import './App.css';
 
-const APP_VERSION = '1.1.0';
+const APP_VERSION = '1.2.0';
 const API_URL = 'https://calorie-api.sayasaya.workers.dev';
 
 // 外部APIからの結果型
