@@ -33,6 +33,16 @@ export function SearchResult({ results, query }: SearchResultProps) {
             <div className="result-main">
               <span className="food-name">{item.name}</span>
               <span className="food-category">{item.category}</span>
+              {item.url && (
+                <a
+                  href={item.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="food-link"
+                >
+                  詳細を見る →
+                </a>
+              )}
             </div>
             <div className="calorie-display">
               <span className="calorie-value">{item.calories}</span>

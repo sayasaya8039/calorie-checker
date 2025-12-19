@@ -1,6 +1,6 @@
 {
   "name": "calorie-checker",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "品名を入力してカロリーを検索するWebアプリ",
   "type": "module",
   "scripts": {

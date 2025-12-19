@@ -6,6 +6,7 @@ export interface FoodItem {
   calories: number;
   category: string;
   aliases?: string[];
+  url?: string;
 }
 
 export const foodDatabase: FoodItem[] = [
