@@ -1,0 +1,27 @@
+# 依存関係
+node_modules/
+
+# ビルド出力
+calorie-checker/
+
+# 環境変数
+.env
+.env.*
+
+# キャッシュ
+.cache/
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Cloudflare
+.wrangler/
+
+# note記事
+articles/
